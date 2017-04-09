@@ -531,4 +531,78 @@ defmodule SigawsTest do
       provider: VerificationProvider
     )
   end
+
+  test "PUT with signed body verified using content hash" do
+    body = "signed content"
+    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: body]
+    assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
+    assert_all_sig_headers(sig_data)
+
+    assert {:ok, _} = Sigaws.verify("http://localhost/",
+      method: "PUT",
+      body: {:content_hash, Map.get(sig_data, "X-Amz-Content-Sha256")},
+      headers: sig_data,
+      provider: VerificationProvider
+    )
+  end
+
+  test "PUT using content hash for signing" do
+    body = "signed content"
+    hash = Sigaws.Util.hexdigest(body)
+    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+    assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
+    assert_all_sig_headers(sig_data)
+
+    assert {:ok, _} = Sigaws.verify("http://localhost/",
+      method: "PUT",
+      body: body,
+      headers: sig_data,
+      provider: VerificationProvider
+    )
+  end
+
+  test "PUT using content hash for signing - tampering" do
+    body = "signed content"
+    hash = Sigaws.Util.hexdigest(body)
+    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+    assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
+    assert_all_sig_headers(sig_data)
+
+    assert {:error, _, _} = Sigaws.verify("http://localhost/",
+      method: "PUT",
+      body: body <> "tampered",
+      headers: sig_data,
+      provider: VerificationProvider
+    )
+  end
+
+  test "PUT using content hash for signing - file" do
+    file = "test/sigaws_test.exs"
+    hash = File.stream!(file) |> Sigaws.Util.hexdigest()
+    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+    assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
+    assert_all_sig_headers(sig_data)
+
+    assert {:ok, _} = Sigaws.verify("http://localhost/",
+      method: "PUT",
+      body: File.read!(file),
+      headers: sig_data,
+      provider: VerificationProvider
+    )
+  end
+
+  test "PUT using content hash for signing and verification - file" do
+    file = "test/sigaws_test.exs"
+    hash = File.stream!(file) |> Sigaws.Util.hexdigest()
+    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+    assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
+    assert_all_sig_headers(sig_data)
+
+    assert {:ok, _} = Sigaws.verify("http://localhost/",
+      method: "PUT",
+      body: {:content_hash, hash},
+      headers: sig_data,
+      provider: VerificationProvider
+    )
+  end
 end

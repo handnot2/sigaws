@@ -115,11 +115,20 @@ defmodule Sigaws.Util do
     @hash_alg |> HMAC.init(key) |> HMAC.update(data) |> HMAC.compute()
   end
 
-  @doc false
-  def hexdigest(data) do
+  @doc """
+  Calculate lower case hex encoded SHA256 digest/hash of the given binary or stream.
+  """
+  @spec hexdigest(binary | Enumerable.t) :: binary
+  def hexdigest(data) when is_binary(data) do
     @hash_alg
     |> Hash.init()
     |> Hash.update(data)
+    |> Hash.compute()
+    |> Base.encode16(case: :lower)
+  end
+  def hexdigest(enumerable) do
+    enumerable
+    |> Enum.reduce(Hash.init(@hash_alg), &(Hash.update(&2, &1)))
     |> Hash.compute()
     |> Base.encode16(case: :lower)
   end

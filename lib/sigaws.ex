@@ -77,7 +77,7 @@ defmodule Sigaws do
   | `:method` | A string value -- `GET`, `POST`, `PUT`, etc (defaults to `GET`) |
   | `:params`<br/>&nbsp; | A map of query parameters -- merged with the query string in the given url (defaults to an empty map) |
   | `:headers` | A map of request headers (defaults to an empty map) |
-  | `:body`<br/>&nbsp; | A string value -- use proper encoder (json or urlencoder) to convert to binary (defaults to an empty string) |
+  | `:body`<br/>&nbsp; | A string value (use appropriate encoder) or `:unsigned` or `{:content_hash, hash}` (defaults to an empty string) |
   | `:signed_at`<br/>&nbsp; | `DateTime` in UTC or a string in the form `YYYMMDDTHHmmSSZ` (defults to current time in UTC) |
   | `:expires_in` | Optional expiration in seconds since the signing time |
   | `:region` | A string value |
@@ -265,6 +265,7 @@ defmodule Sigaws do
 
   @body_error {:error, :invalid_input, "body"}
   defp body_opt(%{body: :unsigned}), do: {:ok, :unsigned}
+  defp body_opt(%{body: {:content_hash, hash}}), do: {:ok, {:content_hash, hash}}
   defp body_opt(%{body: b}) when is_binary(b), do: {:ok, b}
   defp body_opt(%{body: _}), do: @body_error
   defp body_opt(_), do: {:ok, ""}

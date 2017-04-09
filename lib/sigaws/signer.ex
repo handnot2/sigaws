@@ -132,5 +132,6 @@ defmodule Sigaws.Signer do
   defp payload_hash(nil), do: @empty_str_hash
   defp payload_hash(""), do: @empty_str_hash
   defp payload_hash(:unsigned), do: "UNSIGNED-PAYLOAD"
+  defp payload_hash({:content_hash, hash}), do: hash
   defp payload_hash(payload), do: payload |> Util.hexdigest()
 end
