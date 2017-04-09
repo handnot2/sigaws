@@ -1,4 +1,4 @@
-defmodule Sigaws.Cryto.HMAC do
+defmodule Sigaws.Crypto.HMAC do
   @moduledoc false
   def init(type, key), do: :crypto.hmac_init(type, key)
   def update(hmac_ctxt, data), do: :crypto.hmac_update(hmac_ctxt, data)

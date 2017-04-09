@@ -1,4 +1,4 @@
-defmodule Sigaws.Cryto.Hash do
+defmodule Sigaws.Crypto.Hash do
   @moduledoc false
   def init(type), do: :crypto.hash_init(type)
   def update(hash_ctxt, data), do: :crypto.hash_update(hash_ctxt, data)

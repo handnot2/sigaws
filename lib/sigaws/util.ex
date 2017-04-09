@@ -5,8 +5,8 @@ defmodule Sigaws.Util do
   """
 
   alias Sigaws.Ctxt
-  alias Sigaws.Cryto.Hash
-  alias Sigaws.Cryto.HMAC
+  alias Sigaws.Crypto.Hash
+  alias Sigaws.Crypto.HMAC
 
   @doc """
   Adds given parameters to the given URL's query string.
