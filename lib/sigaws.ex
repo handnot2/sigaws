@@ -2,6 +2,8 @@ defmodule Sigaws do
   @moduledoc """
   A library to sign and verify HTTP requests using AWS Signature V4.
 
+  [![Inline docs](http://inch-ci.org/github/handnot2/sigaws.svg)](http://inch-ci.org/github/handnot2/sigaws)
+
   `Sigaws` does not dictate how you compose and send HTTP requests. You can use
   `HTTPoison` or any other HTTP client to do that. The signing functions in this
   library work with the HTTP request information provided and return an

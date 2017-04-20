@@ -2,6 +2,8 @@
 
 An Elixir library to sign and verify HTTP requests using AWS Signature V4.
 
+[![Inline docs](http://inch-ci.org/github/handnot2/sigaws.svg)](http://inch-ci.org/github/handnot2/sigaws)
+
 ## Installation
 
 This package can be installed by adding `sigaws` to your list of dependencies

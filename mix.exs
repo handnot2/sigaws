@@ -1,7 +1,7 @@
 defmodule Sigaws.Mixfile do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @description """
   An Elixir library to sign and verify HTTP requests using AWS Signature V4.
   """
@@ -35,7 +35,8 @@ defmodule Sigaws.Mixfile do
     [
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:fsm, "~> 0.3", only: :test},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "~> 0.6", only: :test},
+      {:inch_ex, "~> 0.5", only: :docs}
     ]
   end
 
