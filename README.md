@@ -27,8 +27,8 @@ Part of the tests in this package rely on AWS Signature Version 4 Test Suite.
 This test suite should be downloaded and unpacked before running the tests.
 
 ```sh
-$ mkdir -p test/testsuite
-$ cd test/testsuite
-$ wget https://s3.amazonaws.com/awsdocs/aws-sig-v4-test-suite.zip
-$ unzip aws-sig-v4-test-suite.zip
+mkdir -p test/testsuite
+cd test/testsuite
+wget https://docs.aws.amazon.com/general/latest/gr/samples/aws-sig-v4-test-suite.zip
+unzip aws-sig-v4-test-suite.zip
 ```
