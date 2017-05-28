@@ -41,7 +41,7 @@ defmodule Sigaws.Reader do
       case state do
         {req, "", _} -> next_state(:body, {req, "", ""}) # error?
         {req, name, value} ->
-          next_state(:headers, {req, name, value <> " " <> rest})
+          next_state(:headers, {req, name, value <> "\n " <> rest})
       end
     end
 

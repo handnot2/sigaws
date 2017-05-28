@@ -56,7 +56,6 @@ defmodule AwsSigV4Test do
 
   excluded = [
     "post-sts-token",
-    "get-header-value-multiline",
     "normalize-path",
     "post-vanilla-query-nonunreserved",
     "post-vanilla-query-space"

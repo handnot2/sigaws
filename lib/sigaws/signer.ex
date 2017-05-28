@@ -96,7 +96,11 @@ defmodule Sigaws.Signer do
 
   @ws_re ~r/\s+/
   defp normalize_header_value(v) when is_binary(v) do
-    Regex.replace(@ws_re, String.trim(v), " ")
+    if String.contains?(v, "\n") do
+      v |> String.split("\n") |> normalize_header_value()
+    else
+      Regex.replace(@ws_re, String.trim(v), " ")
+    end
   end
   defp normalize_header_value(v) when is_list(v) do
     v
