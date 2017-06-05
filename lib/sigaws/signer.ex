@@ -6,7 +6,7 @@ defmodule Sigaws.Signer do
   @aws_alg  "AWS4-HMAC-SHA256"
 
   @spec sign_req(map) :: {:ok, map, map} | {:error, atom, binary}
-  def sign_req(%{req_path: req_path, method: method,
+  def sign_req(%{req_path: req_path, method: method, normalize_path: normalize_path,
       params: params, headers: headers, body: body,
       signed_at: signed_at_amz_dt,
       region: region, service: service,
@@ -22,9 +22,10 @@ defmodule Sigaws.Signer do
     headers_to_sign = headers |> Map.keys() |> Enum.sort() |> Enum.join(";")
     params_to_sign = params
 
+    c_req_path = c_req_path(req_path, normalize_path)
     c_qs = c_qs(params_to_sign)
     c_headers = c_headers(headers)
-    c_req = c_req(method, req_path, c_qs, c_headers, headers_to_sign, payload_hash)
+    c_req = c_req(method, c_req_path, c_qs, c_headers, headers_to_sign, payload_hash)
     sts = sts(@aws_alg, signed_at_amz_dt, cred_scope, c_req)
     signature = signing_key |> signature(sts)
 
@@ -48,7 +49,7 @@ defmodule Sigaws.Signer do
   end
 
   @spec sign_url(map) :: {:ok, map, map} | {:error, atom, binary}
-  def sign_url(%{req_path: req_path, method: method,
+  def sign_url(%{req_path: req_path, method: method, normalize_path: normalize_path,
       params: params, headers: headers, body: body,
       signed_at: signed_at_amz_dt,
       region: region, service: service,
@@ -71,9 +72,10 @@ defmodule Sigaws.Signer do
 
     params_to_sign = params |> Map.merge(sig_data)
 
+    c_req_path = c_req_path(req_path, normalize_path)
     c_qs = c_qs(params_to_sign)
     c_headers = c_headers(headers)
-    c_req = c_req(method, req_path, c_qs, c_headers, headers_to_sign, payload_hash)
+    c_req = c_req(method, c_req_path, c_qs, c_headers, headers_to_sign, payload_hash)
     sts = sts(@aws_alg, signed_at_amz_dt, cred_scope, c_req)
     signature = signing_key |> signature(sts)
 
@@ -86,7 +88,17 @@ defmodule Sigaws.Signer do
     {:ok, sig_data, extra}
   end
 
-  def c_qs(%{} = params) do
+  defp c_req_path(req_path, false), do: req_path
+  defp c_req_path(req_path, true) do
+    c_req_path = Path.expand(req_path)
+    if String.ends_with?(req_path, "/") && c_req_path != "/" do
+      c_req_path <> "/"
+    else
+      c_req_path
+    end
+  end
+
+  defp c_qs(%{} = params) do
     params |> URI.encode_query() |> String.replace("+", "%20")
   end
 

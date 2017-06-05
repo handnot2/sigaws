@@ -10,7 +10,7 @@ defmodule Sigaws do
   Elixir map containing signature related parameters/headers. Similarly,
   the verification works with the request information and a provider to
   perform verification.
-  
+
   Take look at `plug_sigaws`, a plug built using this library. This plug can be
   added to your API pipeline to protect your API endpoints. It can also be added
   to browser pipelines to protect access to web resources using "presigned"
@@ -31,7 +31,7 @@ defmodule Sigaws do
                         secret: "some-secret")
 
       {:ok, resp} = HTTPoison.get(url, Map.merge(headers, sig_data))
-  
+
   #### Signature to be passed in query string ("presigned" URL)
 
       url = "http://api.endpoint.host:5000/somthing?a=10&b=20"
@@ -87,6 +87,7 @@ defmodule Sigaws do
   | `:access_key`<br/>&nbsp; | Access key ID used for signing (defaults to `AWS_ACCESS_KEY_ID` environment variable) |
   | `:signing_key` | A signing key can be provided instead of a secret key |
   | `:secret`<br/>&nbsp; | Used when signing key is not provided (defaults to `AWS_SECRET_ACCESS_KEY` environment variable) |
+  | `:normalize_path` | Refer to Section 5.2 in RFC 3986 (default is `false`) |
 
   When there are no errors in signing, this function returns: `{:ok, sig_data, info}`
   The signature data returned in `sig_data` map include the following:
@@ -159,6 +160,7 @@ defmodule Sigaws do
   | `:headers` | Optional request headers (defaults to empty map) |
   | `:body`<br/>&nbsp; | Optional raw body -- not decoded values such as JSON (defaults to empty string) |
   | `:provider` | Module that implements `Sigaws.Provider` behavior -- required |
+  | `:normalize_path` | Refer to Section 5.2 in RFC 3986 (default is `false`) |
 
   Upon successful signature verification this function returns `{:ok, %Sigaws.Ctxt{} = ctxt}`. The returned context `Sigaws.Ctx` can be used to make further policy
   decisions if desired.
@@ -211,9 +213,11 @@ defmodule Sigaws do
          {:ok, dt}               <- Util.parse_amz_dt(signed_at_amz_dt),
          {:ok, rg}               <- region_opt(opts_map),
          {:ok, sv}               <- service_opt(opts_map),
-         {:ok, creds}            <- creds_opts(opts_map)
+         {:ok, creds}            <- creds_opts(opts_map),
+         {:ok, normalize_path}   <- normalize_path_opt(opts_map)
     do
       %URI{path: req_path, query: qs} = uri = URI.parse(url)
+      req_path = if req_path, do: req_path, else: "/"
 
       params = (qs || "") |> URI.decode_query() |> Map.merge(params)
       headers = headers |> Util.downcase_keys() |> Map.put_new("host", uri_host(uri))
@@ -225,7 +229,7 @@ defmodule Sigaws do
         %{signing_key: key} -> key
       end
 
-      {:ok, %{req_path: req_path, method: method,
+      {:ok, %{req_path: req_path, method: method, normalize_path: normalize_path,
               params: params, headers: headers, body: body,
               signed_at: signed_at_amz_dt, region: rg, service: sv,
               access_key: creds[:access_key], signing_key: signing_key}}
@@ -315,6 +319,11 @@ defmodule Sigaws do
   @provider_error {:error, :invalid_input, "provider"}
   defp provider_opt(%{provider: p}) when p != nil and is_atom(p), do: {:ok, p}
   defp provider_opt(_), do: @provider_error
+
+  @normalize_path_error {:error, :invalid_input, "normalize_path"}
+  defp normalize_path_opt(%{normalize_path: v}) when is_boolean(v), do: {:ok, v}
+  defp normalize_path_opt(%{normalize_path: _}), do: {:error, @normalize_path_error}
+  defp normalize_path_opt(_), do: {:ok, false}
 
   @spec list_to_map([{binary, binary}]) :: map
   defp list_to_map(list) do
