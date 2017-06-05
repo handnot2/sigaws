@@ -64,6 +64,18 @@ defmodule SigawsTest do
     assert_all_sig_params(sig_data)
   end
 
+  test "sign_req: not path component" do
+    opts = [region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1"]
+    assert {:ok, sig_data, _} = Sigaws.sign_req("http://localhost", opts)
+    assert_all_sig_headers(sig_data)
+  end
+
+  test "sign_url: not path component" do
+    opts = [region: "gamma-quad", service: "d3", access_key: "ak2", secret: "sk2"]
+    assert {:ok, sig_data, _} = Sigaws.sign_url("http://localhost", opts)
+    assert_all_sig_params(sig_data)
+  end
+
   test "sign_req: valid signed_at UTC" do
     now = DateTime.utc_now() |> Map.put(:microsecond, {0, 0})
     opts = [region: "gamma-quad", service: "d3", access_key: "ak2", secret: "sk2"]
