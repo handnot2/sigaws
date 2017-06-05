@@ -1,5 +1,14 @@
 ## Changelog
 
+### v0.5.0
+
+Fixes:
+
+- Handle normalization of path segments during signature computation (issue #6)
+
+  The `normalize-path` tests in the AWS Signature V4 testsuite pass with
+  with fix.
+
 ### v0.4.0
 
 Fixes:
