@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.4.0
+
+Fixes:
+
+- Default to "/" when path component not present in URL
+
 ### v0.3.0
 
 Fixes:

@@ -214,6 +214,7 @@ defmodule Sigaws do
          {:ok, creds}            <- creds_opts(opts_map)
     do
       %URI{path: req_path, query: qs} = uri = URI.parse(url)
+      req_path = if req_path, do: req_path, else: "/"
 
       params = (qs || "") |> URI.decode_query() |> Map.merge(params)
       headers = headers |> Util.downcase_keys() |> Map.put_new("host", uri_host(uri))
