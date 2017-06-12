@@ -62,7 +62,6 @@ defmodule AwsSigV4Test do
   end
 
   excluded = [
-    "post-sts-token",
     "post-vanilla-query-nonunreserved",
     "post-vanilla-query-space",
   ]

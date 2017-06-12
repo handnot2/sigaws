@@ -11,7 +11,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:sigaws, "~> 0.1.0"}]
+  [{:sigaws, "~> 0.6"}]
 end
 ```
 
@@ -25,31 +25,50 @@ end
 
 ### Signature to be passed as request headers
 
-    url = "http://api.endpoint.host:5000/somthing?a=10&b=20"
-    headers = %{"header1" => "value1", "header2" => "value2"}
-    {:ok, %{} = sig_data, _} =
-      Sigaws.sign_req(url,
-                      headers: headers,
-                      region: "delta-quad",
-                      service: "my-service",
-                      access_key: "some-access-key",
-                      secret: "some-secret")
+```elixir
+url = "https://ec2.amazonaws.com/Action=DescribeRegions&Version=2013-10-15"
 
-    {:ok, resp} = HTTPoison.get(url, Map.merge(headers, sig_data))
+{:ok, %{} = sig_data, _} =
+  Sigaws.sign_req(url, region: "us-east-1", service: "ec2",
+    access_key: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret:     System.get_env("AWS_SECRET_ACCESS_KEY"))
+
+{:ok, resp} = HTTPoison.get(url, sig_data)
+```
+
+> You can pass in request headers to be included in the signature. Make sure to merge the
+> signature with the headers before sending the request.
+
+The same example is shown here making use of the temporary credentials obtained using
+**AWS STS Secure Token Service**. Assuming the temporary credentials and the session
+token are made available in environment variables:
+
+```elixir
+url = "https://ec2.amazonaws.com/Action=DescribeRegions&Version=2013-10-15"
+headers = %{"X-Amz-Secure-Token" => System.get_env("AWS_SESSION_TOKEN")}
+
+{:ok, %{} = sig_data, _} =
+  Sigaws.sign_req(url, region: "us-east-1", service: "ec2", headers: headers,
+    access_key: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret:     System.get_env("AWS_SECRET_ACCESS_KEY"))
+
+{:ok, resp} = HTTPoison.get(url, Map.merge(headers, sig_data))
+```
 
 ### Signature to be passed in query string ("presigned" URL)
 
-    url = "http://api.endpoint.host:5000/somthing?a=10&b=20"
-    {:ok, %{} = sig_data, _} =
-      Sigaws.sign_url(url,
-                      body: :unsigned,
-                      expires_in: 5 * 60,                 # 5 minutes
-                      region: "delta-quad",
-                      service: "my-service",
-                      access_key: "some-access-key",
-                      secret: "some-secret")
+```elixir
+url = "https://iam.amazonaws.com/Action=CreateUser&UserName=NewUser&Version=2010-05-08"
 
-    presigned_url = Sigaws.Util.add_params_to_url(url, sig_data)
+{:ok, %{} = sig_data, _} =
+  Sigaws.sign_req(url, region: "us-east-1", service: "iam", body: :unsigned,
+    access_key: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret: System.get_env("AWS_SECRET_ACCESS_KEY"))
+
+presigned_url = Sigaws.Util.add_params_to_url(url, sig_data)
+
+{:ok, resp} = HTTPoison.get(presigned_url)
+```
 
 ### Signature Verification
 
@@ -57,13 +76,15 @@ The verification process relies on a provider module that implements
 `Sigaws.Provider` behavior. The provider is expected to supply the signing
 key based on the information present in the context (primarily the access key).
 
-    {:ok, %Sigaws.Ctxt{} = ctxt} =
-      Sigaws.Verify(conn.request_path,
-        method: conn.method,
-        params: conn.query_params,
-        headers: conn.req_headers,
-        body: get_raw_body(conn),
-        provider: SigawsQuickStartProvider)
+```elixir
+{:ok, %Sigaws.Ctxt{} = ctxt} =
+  Sigaws.Verify(conn.request_path,
+    method: conn.method,
+    params: conn.query_params,
+    headers: conn.req_headers,
+    body: get_raw_body(conn),
+    provider: SigawsQuickStartProvider)
+```
 
 The above example is using the `sigaws_quickstart_provider` Hex package.
 Check the blog listed earlier.
