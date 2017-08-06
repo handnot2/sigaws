@@ -43,7 +43,9 @@ defmodule Sigaws.Signer do
       "Authorization"       => authz_header |> IO.iodata_to_binary(),
     }
 
-    extra = if Mix.env != :prod, do: %{c_req: c_req, sts: sts}, else: %{}
+    # TO-DO replace this functionality with a package config debug
+    # extra = if Mix.env != :prod, do: %{c_req: c_req, sts: sts}, else: %{}
+    extra = %{c_req: c_req, sts: sts}
 
     {:ok, Map.put(sig_data, "X-Amz-Content-Sha256", payload_hash), extra}
   end
@@ -84,7 +86,10 @@ defmodule Sigaws.Signer do
       |> Map.put("X-Amz-Signature", signature)
       |> Map.put("X-Amz-Content-Sha256", payload_hash)
 
-    extra = if Mix.env != :prod, do: %{c_req: c_req, sts: sts}, else: %{}
+    # TO-DO replace this functionality with a package config debug
+    # extra = if Mix.env != :prod, do: %{c_req: c_req, sts: sts}, else: %{}
+    extra = %{c_req: c_req, sts: sts}
+
     {:ok, sig_data, extra}
   end
 
