@@ -1,5 +1,12 @@
 ## Changelog
 
+### v0.7.0
+
+Fixes:
+
+- Removed Mix.env reference that caused problems with distillery based releases.
+  PR from [zeroasterisk](https://github.com/zeroasterisk) (issue #8)
+
 ### v0.6.0
 
 Fixes:

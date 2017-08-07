@@ -11,7 +11,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:sigaws, "~> 0.6"}]
+  [{:sigaws, "~> 0.7"}]
 end
 ```
 
@@ -54,6 +54,9 @@ headers = %{"X-Amz-Secure-Token" => System.get_env("AWS_SESSION_TOKEN")}
 
 {:ok, resp} = HTTPoison.get(url, Map.merge(headers, sig_data))
 ```
+
+> Make sure to merge `sig_data` with other headers before calling HTTPoison.
+> If not done, the HTTP request will fail with signature verification error.
 
 ### Signature to be passed in query string ("presigned" URL)
 
