@@ -1,5 +1,4 @@
 defmodule Sigaws.Provider do
-
   @moduledoc """
   This behavior defines the callbacks expected from an implementation needed
   for signature verification.
@@ -13,7 +12,7 @@ defmodule Sigaws.Provider do
   -    region is not one of supported regions
   -    service is not one of supported services
   -    request expired (based on `signed_at_amz_dt` and `expires_in`)
-  
+
   The `signing_key` callback is called only when
   `pre_verification` succeeds without any error. This key should be generated
   as outlined
@@ -43,8 +42,7 @@ defmodule Sigaws.Provider do
   | `{:error, atom, binary}` | For other errors as defined by the implementation |
   | `:ok` | Verification passes |
   """
-  @callback pre_verification(ctxt :: Ctxt.t) ::
-      :ok | {:error, reason :: atom, info :: binary}
+  @callback pre_verification(ctxt :: Ctxt.t()) :: :ok | {:error, reason :: atom, info :: binary}
 
   @doc """
   Return the signing key to be used for verification based on access key ID
@@ -60,6 +58,6 @@ defmodule Sigaws.Provider do
   | `{:error, atom, binary}` | For other errors as defined by the implementation |
   | `{:ok, binary}` | Valid signing key is generated |
   """
-  @callback signing_key(ctxt :: Ctxt.t) ::
-    {:ok, key :: binary} | {:error, reason :: atom, info :: binary}
+  @callback signing_key(ctxt :: Ctxt.t()) ::
+              {:ok, key :: binary} | {:error, reason :: atom, info :: binary}
 end

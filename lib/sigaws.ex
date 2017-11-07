@@ -110,8 +110,7 @@ defmodule Sigaws do
   """
   @spec sign_req(binary, keyword) :: {:ok, map, map} | {:error, atom, binary}
   def sign_req(url, additional_named_input) when is_list(additional_named_input) do
-    with {:ok, vinput} <- validate_signing_input(url, additional_named_input)
-    do
+    with {:ok, vinput} <- validate_signing_input(url, additional_named_input) do
       Signer.sign_req(vinput)
     end
   end
@@ -137,8 +136,7 @@ defmodule Sigaws do
   """
   @spec sign_url(binary, keyword) :: {:ok, map, map} | {:error, atom, binary}
   def sign_url(url, additional_named_input) when is_list(additional_named_input) do
-    with {:ok, vinput} <- validate_signing_input(url, additional_named_input)
-    do
+    with {:ok, vinput} <- validate_signing_input(url, additional_named_input) do
       Signer.sign_url(vinput)
     end
   end
@@ -174,22 +172,27 @@ defmodule Sigaws do
   | `{:error, :mismatched, "X-Amz-Date"}` |
 
   """
-  @spec verify(binary, keyword) :: {:ok, Ctxt.t} | {:error, atom, binary}
+  @spec verify(binary, keyword) :: {:ok, Ctxt.t()} | {:error, atom, binary}
   def verify(req_path, opts) do
     opts_map = Map.new(opts)
-    with {:ok, provider}  <- provider_opt(opts_map),
-         {:ok, method}    <- method_opt(opts_map),
-         {:ok, qs}        <- qs_opt(opts_map),
-         {:ok, params}    <- qp_opt(opts_map),
-         {:ok, headers}   <- headers_opt(opts_map),
-         {:ok, body}      <- body_opt(opts_map)
-    do
+
+    with {:ok, provider} <- provider_opt(opts_map),
+         {:ok, method} <- method_opt(opts_map),
+         {:ok, qs} <- qs_opt(opts_map),
+         {:ok, params} <- qp_opt(opts_map),
+         {:ok, headers} <- headers_opt(opts_map),
+         {:ok, body} <- body_opt(opts_map) do
       params = qs |> URI.decode_query() |> Map.merge(params)
       headers = headers |> Util.downcase_keys()
+
       validated_opts = %{
-        method: method, params: params, headers: headers, body: body,
+        method: method,
+        params: params,
+        headers: headers,
+        body: body,
         provider: provider
       }
+
       if Verifier.presigned?(params) do
         Verifier.verify_url(req_path, validated_opts)
       else
@@ -201,43 +204,53 @@ defmodule Sigaws do
     end
   end
 
-  @spec validate_signing_input(binary, keyword) ::
-      {:ok, map} | {:error, atom, binary}
+  @spec validate_signing_input(binary, keyword) :: {:ok, map} | {:error, atom, binary}
   defp validate_signing_input(url, opts) do
     with opts_map = Map.new(opts),
-         {:ok, method}           <- method_opt(opts_map),
-         {:ok, params}           <- qp_opt(opts_map),
-         {:ok, headers}          <- headers_opt(opts_map),
-         {:ok, body}             <- body_opt(opts_map),
+         {:ok, method} <- method_opt(opts_map),
+         {:ok, params} <- qp_opt(opts_map),
+         {:ok, headers} <- headers_opt(opts_map),
+         {:ok, body} <- body_opt(opts_map),
          {:ok, signed_at_amz_dt} <- signed_at_opt(opts_map),
-         {:ok, dt}               <- Util.parse_amz_dt(signed_at_amz_dt),
-         {:ok, rg}               <- region_opt(opts_map),
-         {:ok, sv}               <- service_opt(opts_map),
-         {:ok, creds}            <- creds_opts(opts_map),
-         {:ok, normalize_path}   <- normalize_path_opt(opts_map)
-    do
+         {:ok, dt} <- Util.parse_amz_dt(signed_at_amz_dt),
+         {:ok, rg} <- region_opt(opts_map),
+         {:ok, sv} <- service_opt(opts_map),
+         {:ok, creds} <- creds_opts(opts_map),
+         {:ok, normalize_path} <- normalize_path_opt(opts_map) do
       %URI{path: req_path, query: qs} = uri = URI.parse(url)
       req_path = if req_path, do: req_path, else: "/"
 
       params = (qs || "") |> URI.decode_query() |> Map.merge(params)
       headers = headers |> Util.downcase_keys() |> Map.put_new("host", uri_host(uri))
 
-      signing_key = case creds do
-        %{secret: secret} ->
-          {:ok, key} = dt |> DateTime.to_date() |> Util.signing_key(rg, sv, secret)
-          key
-        %{signing_key: key} -> key
-      end
+      signing_key =
+        case creds do
+          %{secret: secret} ->
+            {:ok, key} = dt |> DateTime.to_date() |> Util.signing_key(rg, sv, secret)
+            key
 
-      {:ok, %{req_path: req_path, method: method, normalize_path: normalize_path,
-              params: params, headers: headers, body: body,
-              signed_at: signed_at_amz_dt, region: rg, service: sv,
-              access_key: creds[:access_key], signing_key: signing_key}}
+          %{signing_key: key} ->
+            key
+        end
+
+      {:ok, %{
+        req_path: req_path,
+        method: method,
+        normalize_path: normalize_path,
+        params: params,
+        headers: headers,
+        body: body,
+        signed_at: signed_at_amz_dt,
+        region: rg,
+        service: sv,
+        access_key: creds[:access_key],
+        signing_key: signing_key
+      }}
     end
   end
 
   defp uri_host(%URI{scheme: "https", host: h, port: 443}), do: h
-  defp uri_host(%URI{scheme: "http",  host: h, port: 80}), do: h
+  defp uri_host(%URI{scheme: "http", host: h, port: 80}), do: h
   defp uri_host(%URI{host: nil}), do: ""
   defp uri_host(%URI{host: h, port: nil}), do: h
   defp uri_host(%URI{host: h, port: p}), do: "#{h}:#{p}"
@@ -248,6 +261,7 @@ defmodule Sigaws do
     v = String.upcase(m)
     if v in @http_methods, do: {:ok, v}, else: @method_error
   end
+
   defp method_opt(%{method: _}), do: @method_error
   defp method_opt(_), do: {:ok, "GET"}
 
@@ -281,12 +295,14 @@ defmodule Sigaws do
   defp signed_at_opt(%{signed_at: %DateTime{time_zone: "Etc/UTC"} = dt}) do
     {:ok, %DateTime{dt | microsecond: {0, 0}} |> Util.amz_dt_iso()}
   end
+
   defp signed_at_opt(%{signed_at: s}) when is_binary(s) do
     case Util.parse_amz_dt(s) do
       {:ok, _} -> {:ok, s}
       _ -> @signed_at_error
     end
   end
+
   defp signed_at_opt(%{signed_at: _}), do: @signed_at_error
   defp signed_at_opt(_), do: {:ok, Util.amz_dt_now() |> Util.amz_dt_iso()}
 

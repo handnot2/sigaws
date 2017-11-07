@@ -5,15 +5,21 @@ defmodule Sigaws.Verifier do
   alias Sigaws.Util
 
   @sig_params [
-    "X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Date",
-    "X-Amz-Signature", "X-Amz-SignedHeaders"]
+    "X-Amz-Algorithm",
+    "X-Amz-Credential",
+    "X-Amz-Date",
+    "X-Amz-Signature",
+    "X-Amz-SignedHeaders"
+  ]
 
-  {:ok, az_re} = Regex.compile(
-    "AWS4-HMAC-SHA256 Credential=(?<cr>.*),\s*" <>
-    "SignedHeaders=(?<sh>.*),\s*Signature=(?<sg>.*)$")
+  {:ok, az_re} =
+    Regex.compile(
+      "AWS4-HMAC-SHA256 Credential=(?<cr>.*),\s*" <>
+        "SignedHeaders=(?<sh>.*),\s*Signature=(?<sg>.*)$"
+    )
+
   @az_re az_re
-  {:ok, cr_re} = Regex.compile(
-    "(?<ak>.+)/(?<sd>.+)/(?<rg>.+)/(?<sv>.+)/aws4_request$")
+  {:ok, cr_re} = Regex.compile("(?<ak>.+)/(?<sd>.+)/(?<rg>.+)/(?<sv>.+)/aws4_request$")
   @cr_re cr_re
 
   @doc """
@@ -24,42 +30,51 @@ defmodule Sigaws.Verifier do
   """
   @spec presigned?(map) :: boolean
   def presigned?(params) do
-    Map.has_key?(params, "X-Amz-Credential") ||
-    Map.has_key?(params, "X-Amz-Signature")
+    Map.has_key?(params, "X-Amz-Credential") || Map.has_key?(params, "X-Amz-Signature")
   end
 
-  @spec verify_url(binary, map) :: {:ok, Ctxt.t} | {:error, atom, binary}
-  def verify_url(req_path, %{method: method,
-      params: params, headers: headers, body: body, provider: provider}) do
+  @spec verify_url(binary, map) :: {:ok, Ctxt.t()} | {:error, atom, binary}
+  def verify_url(req_path, %{
+        method: method,
+        params: params,
+        headers: headers,
+        body: body,
+        provider: provider
+      }) do
     with {:ok, %Ctxt{} = ctxt} <- ctxt_from_params(params),
-         :ok                   <- provider.pre_verification(ctxt),
-         {:ok, signing_key}    <- provider.signing_key(ctxt)
-    do
-      {_, params_to_sign} =
-        Map.split(params, @sig_params ++ ["X-Amz-Content-Sha256"])
+         :ok <- provider.pre_verification(ctxt),
+         {:ok, signing_key} <- provider.signing_key(ctxt) do
+      {_, params_to_sign} = Map.split(params, @sig_params ++ ["X-Amz-Content-Sha256"])
 
       headers_to_sign = headers |> Map.take(ctxt.signed_headers)
 
-      body = case Map.get(params, "X-Amz-Content-Sha256") do
-        nil -> ""
-        "UNSIGNED-PAYLOAD" -> :unsigned
-        _ -> body
-      end
+      body =
+        case Map.get(params, "X-Amz-Content-Sha256") do
+          nil -> ""
+          "UNSIGNED-PAYLOAD" -> :unsigned
+          _ -> body
+        end
 
-      result = Sigaws.sign_url(
-        req_path, method: method,
-        params: params_to_sign, headers: headers_to_sign,
-        body: body, signed_at: ctxt.signed_at_amz_dt,
-        region: ctxt.region, service: ctxt.service,
-        access_key: ctxt.access_key, signing_key: signing_key
-      )
+      result =
+        Sigaws.sign_url(
+          req_path,
+          method: method,
+          params: params_to_sign,
+          headers: headers_to_sign,
+          body: body,
+          signed_at: ctxt.signed_at_amz_dt,
+          region: ctxt.region,
+          service: ctxt.service,
+          access_key: ctxt.access_key,
+          signing_key: signing_key
+        )
 
       signature_to_verify = ctxt.signature
-      with {:ok, sig_data, _}   <- result,
-           {:ok, computed_ctxt} <- ctxt_from_params(sig_data)
-      do
-        #IO.inspect(ctxt, label: "verification ctxt")
-        #IO.inspect(computed_ctxt, label: "computed ctxt")
+
+      with {:ok, sig_data, _} <- result,
+           {:ok, computed_ctxt} <- ctxt_from_params(sig_data) do
+        # IO.inspect(ctxt, label: "verification ctxt")
+        # IO.inspect(computed_ctxt, label: "computed ctxt")
         if signature_to_verify == computed_ctxt.signature do
           {:ok, computed_ctxt}
         else
@@ -73,38 +88,49 @@ defmodule Sigaws.Verifier do
     end
   end
 
-  @spec verify_req(binary, map) :: {:ok, Ctxt.t} | {:error, atom, binary}
-  def verify_req(req_path, %{method: method,
-      params: params, headers: headers, body: body, provider: provider}) do
+  @spec verify_req(binary, map) :: {:ok, Ctxt.t()} | {:error, atom, binary}
+  def verify_req(req_path, %{
+        method: method,
+        params: params,
+        headers: headers,
+        body: body,
+        provider: provider
+      }) do
     with {:ok, %Ctxt{} = ctxt} <- ctxt_from_headers(headers),
-         :ok                   <- provider.pre_verification(ctxt),
-         {:ok, signing_key}    <- provider.signing_key(ctxt)
-    do
+         :ok <- provider.pre_verification(ctxt),
+         {:ok, signing_key} <- provider.signing_key(ctxt) do
       params_to_sign = params
 
       headers_to_sign = headers |> Map.take(ctxt.signed_headers)
 
-      body = case Map.get(headers, "x-amz-content-sha256") do
-        nil -> body || ""
-        "UNSIGNED-PAYLOAD" -> :unsigned
-        _ -> body
-      end
+      body =
+        case Map.get(headers, "x-amz-content-sha256") do
+          nil -> body || ""
+          "UNSIGNED-PAYLOAD" -> :unsigned
+          _ -> body
+        end
 
-      result = Sigaws.sign_req(
-        req_path, method: method,
-        params: params_to_sign, headers: headers_to_sign,
-        body: body, signed_at: ctxt.signed_at_amz_dt,
-        region: ctxt.region, service: ctxt.service,
-        access_key: ctxt.access_key, signing_key: signing_key
-      )
+      result =
+        Sigaws.sign_req(
+          req_path,
+          method: method,
+          params: params_to_sign,
+          headers: headers_to_sign,
+          body: body,
+          signed_at: ctxt.signed_at_amz_dt,
+          region: ctxt.region,
+          service: ctxt.service,
+          access_key: ctxt.access_key,
+          signing_key: signing_key
+        )
 
       signature_to_verify = ctxt.signature
+
       with {:ok, sig_data, _info} <- result,
            sig_data = Util.downcase_keys(sig_data),
-           {:ok, computed_ctxt} <- ctxt_from_headers(sig_data)
-      do
-        #IO.inspect(ctxt, label: "verification ctxt")
-        #IO.inspect(computed_ctxt, label: "computed ctxt")
+           {:ok, computed_ctxt} <- ctxt_from_headers(sig_data) do
+        # IO.inspect(ctxt, label: "verification ctxt")
+        # IO.inspect(computed_ctxt, label: "computed ctxt")
         if signature_to_verify == computed_ctxt.signature do
           {:ok, computed_ctxt}
         else
@@ -168,20 +194,24 @@ defmodule Sigaws.Verifier do
 
   @spec ctxt_from_params(map) :: {:ok, %Ctxt{}} | {:error, atom, binary}
   defp ctxt_from_params(p) do
-    with {:ok, sg}               <- get_signature(Map.get(p, "X-Amz-Signature")),
-         {:ok, st}               <- get_signed_at(Map.get(p, "X-Amz-Date")),
-         {:ok, cr}               <- get_credential(Map.get(p, "X-Amz-Credential")),
-         {:ok, sh}               <- get_signedheaders(Map.get(p, "X-Amz-SignedHeaders")),
-         {:ok, ex}               <- parse_expires(Map.get(p, "X-Amz-Expires")),
+    with {:ok, sg} <- get_signature(Map.get(p, "X-Amz-Signature")),
+         {:ok, st} <- get_signed_at(Map.get(p, "X-Amz-Date")),
+         {:ok, cr} <- get_credential(Map.get(p, "X-Amz-Credential")),
+         {:ok, sh} <- get_signedheaders(Map.get(p, "X-Amz-SignedHeaders")),
+         {:ok, ex} <- parse_expires(Map.get(p, "X-Amz-Expires")),
          {:ok, {ak, sd, rg, sv}} <- parse_credential(cr),
-         {:ok, dt}               <- Util.parse_amz_dt(st),
-         :ok                     <- match_signing_date(sd, dt)
-    do
+         {:ok, dt} <- Util.parse_amz_dt(st),
+         :ok <- match_signing_date(sd, dt) do
       sh = sh |> String.split(";") |> Enum.sort()
+
       {:ok, %Ctxt{
-        access_key: ak, region: rg, service: sv,
-        signed_at_amz_dt: st, expires_in: ex,
-        signed_headers: sh, signature: sg
+        access_key: ak,
+        region: rg,
+        service: sv,
+        signed_at_amz_dt: st,
+        expires_in: ex,
+        signed_headers: sh,
+        signature: sg
       }}
     else
       {:error, _, _} = error -> error
@@ -190,19 +220,23 @@ defmodule Sigaws.Verifier do
 
   @spec ctxt_from_headers(map) :: {:ok, %Ctxt{}} | {:error, atom, binary}
   defp ctxt_from_headers(%{} = h) do
-    with {:ok, az}               <- get_authorization(Map.get(h, "authorization")),
-         {:ok, st}               <- get_signed_at(Map.get(h, "x-amz-date")),
-         {:ok, ex}               <- parse_expires(Map.get(h, "x-amz-expires")),
-         {:ok, {cr, sh, sg}}     <- parse_authorization(az),
+    with {:ok, az} <- get_authorization(Map.get(h, "authorization")),
+         {:ok, st} <- get_signed_at(Map.get(h, "x-amz-date")),
+         {:ok, ex} <- parse_expires(Map.get(h, "x-amz-expires")),
+         {:ok, {cr, sh, sg}} <- parse_authorization(az),
          {:ok, {ak, sd, rg, sv}} <- parse_credential(cr),
-         {:ok, dt}               <- Util.parse_amz_dt(st),
-         :ok                     <- match_signing_date(sd, dt)
-    do
+         {:ok, dt} <- Util.parse_amz_dt(st),
+         :ok <- match_signing_date(sd, dt) do
       sh = sh |> String.split(";") |> Enum.sort()
+
       {:ok, %Ctxt{
-        access_key: ak, region: rg, service: sv,
-        signed_at_amz_dt: st, expires_in: ex,
-        signed_headers: sh, signature: sg
+        access_key: ak,
+        region: rg,
+        service: sv,
+        signed_at_amz_dt: st,
+        expires_in: ex,
+        signed_headers: sh,
+        signature: sg
       }}
     else
       {:error, _, _} = error -> error

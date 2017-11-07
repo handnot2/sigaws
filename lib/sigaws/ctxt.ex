@@ -25,16 +25,22 @@ defmodule Sigaws.Ctxt do
   @type expires_in :: integer | nil
 
   @type t :: %__MODULE__{
-    access_key: binary,
-    region: binary,
-    service: binary,
-    signed_at_amz_dt: binary,
-    expires_in: expires_in,
-    signed_headers: signed_headers,
-    signature: binary
-  }
+          access_key: binary,
+          region: binary,
+          service: binary,
+          signed_at_amz_dt: binary,
+          expires_in: expires_in,
+          signed_headers: signed_headers,
+          signature: binary
+        }
 
-  defstruct [:access_key, :region, :service,
-             :signed_at_amz_dt, :expires_in,
-             :signed_headers, :signature]
+  defstruct [
+    :access_key,
+    :region,
+    :service,
+    :signed_at_amz_dt,
+    :expires_in,
+    :signed_headers,
+    :signature
+  ]
 end

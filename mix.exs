@@ -1,7 +1,7 @@
 defmodule Sigaws.Mixfile do
   use Mix.Project
 
-  @version "0.7.1"
+  @version "0.7.2"
   @description """
   An Elixir library to sign and verify HTTP requests using AWS Signature V4.
   """
@@ -10,15 +10,16 @@ defmodule Sigaws.Mixfile do
   @test_suite_url "http://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html"
 
   def project do
-    [app: :sigaws,
-     version: @version,
-     description: @description,
-     package: package(),
-     elixir: "~> 1.4",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps(),
-     test_coverage: [tool: ExCoveralls],
+    [
+      app: :sigaws,
+      version: @version,
+      description: @description,
+      package: package(),
+      elixir: "~> 1.4",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 

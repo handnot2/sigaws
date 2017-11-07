@@ -7,8 +7,12 @@ defmodule VerificationProvider do
 
   def pre_verification(%Sigaws.Ctxt{} = ctxt) do
     cond do
-      !(ctxt.region in test_regions()) -> {:error, :invalid_data, "region"}
-      !(ctxt.service in test_services()) -> {:error, :invalid_data, "service"}
+      !(ctxt.region in test_regions()) ->
+        {:error, :invalid_data, "region"}
+
+      !(ctxt.service in test_services()) ->
+        {:error, :invalid_data, "service"}
+
       true ->
         case Sigaws.Util.check_expiration(ctxt) do
           :ok -> :ok
@@ -19,9 +23,11 @@ defmodule VerificationProvider do
 
   def signing_key(%Sigaws.Ctxt{} = ctxt) do
     creds = test_creds()
+
     if Map.has_key?(creds, ctxt.access_key) do
       secret = Map.get(creds, ctxt.access_key)
       {:ok, dt} = Sigaws.Util.parse_amz_dt(ctxt.signed_at_amz_dt)
+
       dt
       |> DateTime.to_date()
       |> Sigaws.Util.signing_key(ctxt.region, ctxt.service, secret)
@@ -123,6 +129,7 @@ defmodule SigawsTest do
       Sigaws.Util.amz_dt_now()
       |> Sigaws.Util.amz_dt_iso()
       |> String.replace("Z", "X")
+
     opts = [region: "gamma-quad", service: "d3", access_key: "ak2", secret: "sk2"]
     opts = opts |> Keyword.put(:signed_at, now)
     assert {:error, _, _} = Sigaws.sign_req("http://localhost/", opts)
@@ -133,6 +140,7 @@ defmodule SigawsTest do
       Sigaws.Util.amz_dt_now()
       |> Sigaws.Util.amz_dt_iso()
       |> String.replace("Z", "X")
+
     opts = [region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1"]
     opts = opts |> Keyword.put(:signed_at, now)
     assert {:error, _, _} = Sigaws.sign_url("http://localhost/", opts)
@@ -147,10 +155,12 @@ defmodule SigawsTest do
 
     :timer.sleep(3000)
 
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.merge(headers, sig_data),
-      provider: VerificationProvider
-    )
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.merge(headers, sig_data),
+               provider: VerificationProvider
+             )
   end
 
   test "sign_url: expiration" do
@@ -162,10 +172,12 @@ defmodule SigawsTest do
 
     :timer.sleep(3000)
 
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.merge(params, sig_data),
-      provider: VerificationProvider
-    )
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.merge(params, sig_data),
+               provider: VerificationProvider
+             )
   end
 
   test "sign_req: expiration tampering" do
@@ -178,29 +190,47 @@ defmodule SigawsTest do
     :timer.sleep(3000)
 
     headers = %{"X-Amz-Expires" => "invalid-value"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.merge(headers, sig_data),
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.merge(headers, sig_data),
+               provider: VerificationProvider
+             )
+
     headers = %{"X-Amz-Expires" => "0"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.merge(headers, sig_data),
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.merge(headers, sig_data),
+               provider: VerificationProvider
+             )
+
     headers = %{"X-Amz-Expires" => "-10"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.merge(headers, sig_data),
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.merge(headers, sig_data),
+               provider: VerificationProvider
+             )
+
     headers = %{"X-Amz-Expires" => "5"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.merge(headers, sig_data),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.merge(headers, sig_data),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "sign_url: expiration tampering" do
@@ -213,29 +243,47 @@ defmodule SigawsTest do
     :timer.sleep(3000)
 
     params = %{"X-Amz-Expires" => "invalid-value"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.merge(params, sig_data),
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.merge(params, sig_data),
+               provider: VerificationProvider
+             )
+
     params = %{"X-Amz-Expires" => "0"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.merge(params, sig_data),
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.merge(params, sig_data),
+               provider: VerificationProvider
+             )
+
     params = %{"X-Amz-Expires" => "-10"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.merge(params, sig_data),
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.merge(params, sig_data),
+               provider: VerificationProvider
+             )
+
     params = %{"X-Amz-Expires" => "5"}
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.merge(params, sig_data),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: sig_data,
-      provider: VerificationProvider
-    )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.merge(params, sig_data),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "sign_req: X-Amz-Date tampering" do
@@ -244,26 +292,40 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.put(sig_data, "X-Amz-Date", "20150310T000000Z"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.put(sig_data, "X-Amz-Date", "20150310T990000Z"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.put(sig_data, "X-Amz-Date", "20150310"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.put(sig_data, "X-Amz-Date", "invalid-date"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      headers: Map.put(sig_data, "X-Amz-Date", ""),
-      provider: VerificationProvider
-    )
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.put(sig_data, "X-Amz-Date", "20150310T000000Z"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.put(sig_data, "X-Amz-Date", "20150310T990000Z"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.put(sig_data, "X-Amz-Date", "20150310"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.put(sig_data, "X-Amz-Date", "invalid-date"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.put(sig_data, "X-Amz-Date", ""),
+               provider: VerificationProvider
+             )
   end
 
   test "sign_url: X-Amz-Date tampering" do
@@ -272,26 +334,40 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _} = Sigaws.sign_url("http://localhost/", opts)
     assert_all_sig_params(sig_data)
 
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.put(sig_data, "X-Amz-Date", "20150310T000000Z"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.put(sig_data, "X-Amz-Date", "20150310T990000Z"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.put(sig_data, "X-Amz-Date", "20150310"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.put(sig_data, "X-Amz-Date", "invalid-date"),
-      provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      params: Map.put(sig_data, "X-Amz-Date", ""),
-      provider: VerificationProvider
-    )
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.put(sig_data, "X-Amz-Date", "20150310T000000Z"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.put(sig_data, "X-Amz-Date", "20150310T990000Z"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.put(sig_data, "X-Amz-Date", "20150310"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.put(sig_data, "X-Amz-Date", "invalid-date"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.put(sig_data, "X-Amz-Date", ""),
+               provider: VerificationProvider
+             )
   end
 
   test "sign_req: missing signature elements" do
@@ -300,26 +376,40 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        headers: Map.delete(sig_data, "Authorization"),
-        provider: VerificationProvider
-    )
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-        headers: Map.delete(sig_data, "X-Amz-Algorithm"),
-        provider: VerificationProvider
-    )
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-        headers: Map.delete(sig_data, "X-Amz-Content-Sha256"),
-        provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        headers: Map.delete(sig_data, "X-Amz-Date"),
-        provider: VerificationProvider
-    )
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-        headers: Map.delete(sig_data, "X-Amz-SignedHeaders"),
-        provider: VerificationProvider
-    )
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.delete(sig_data, "Authorization"),
+               provider: VerificationProvider
+             )
+
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.delete(sig_data, "X-Amz-Algorithm"),
+               provider: VerificationProvider
+             )
+
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.delete(sig_data, "X-Amz-Content-Sha256"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.delete(sig_data, "X-Amz-Date"),
+               provider: VerificationProvider
+             )
+
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               headers: Map.delete(sig_data, "X-Amz-SignedHeaders"),
+               provider: VerificationProvider
+             )
   end
 
   test "sign_url: missing signature elements" do
@@ -328,30 +418,47 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _} = Sigaws.sign_url("http://localhost/", opts)
     assert_all_sig_params(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-        params: Map.delete(sig_data, "X-Amz-Algorithm"),
-        provider: VerificationProvider
-    )
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-        params: Map.delete(sig_data, "X-Amz-Content-Sha256"),
-        provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        params: Map.delete(sig_data, "X-Amz-Credential"),
-        provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        params: Map.delete(sig_data, "X-Amz-Date"),
-        provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        params: Map.delete(sig_data, "X-Amz-Signature"),
-        provider: VerificationProvider
-    )
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        params: Map.delete(sig_data, "X-Amz-SignedHeaders"),
-        provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.delete(sig_data, "X-Amz-Algorithm"),
+               provider: VerificationProvider
+             )
+
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.delete(sig_data, "X-Amz-Content-Sha256"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.delete(sig_data, "X-Amz-Credential"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.delete(sig_data, "X-Amz-Date"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.delete(sig_data, "X-Amz-Signature"),
+               provider: VerificationProvider
+             )
+
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               params: Map.delete(sig_data, "X-Amz-SignedHeaders"),
+               provider: VerificationProvider
+             )
   end
 
   test "sign_req: malformed authorization header" do
@@ -374,13 +481,16 @@ defmodule SigawsTest do
       "AWS4-HMAC-SHA256 Credential=ak3/20170327/gamma-quad/d3/aws4_request, SignedHeaders=host, Signature=b",
       "AWS4-HMAC-SHA256 Credential=ak3/20170327/gamma-quad/d3/aws4_request, SignedHeaders=host, Signature=b",
       "AWS4-HMAC-SHA256 Credential=ak3/20173327/gamma-quad/d3/aws4_request, SignedHeaders=host, Signature=b",
-      "AWS4-HMAC-SHA256 Credential=/20170327/gamma-quad/d3/aws4_request, SignedHeaders=host, Signature=b",
+      "AWS4-HMAC-SHA256 Credential=/20170327/gamma-quad/d3/aws4_request, SignedHeaders=host, Signature=b"
     ]
+
     for az <- incorrect_az do
-      assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        headers: Map.put(sig_data, "Authorization", az),
-        provider: VerificationProvider
-      )
+      assert {:error, _, _} =
+               Sigaws.verify(
+                 "http://localhost/",
+                 headers: Map.put(sig_data, "Authorization", az),
+                 provider: VerificationProvider
+               )
     end
   end
 
@@ -404,28 +514,42 @@ defmodule SigawsTest do
       "ak3/20170327/gamma-quad/d3/aws4_request",
       "ak3/20170327/gamma-quad/d3/aws4_request",
       "ak3/20173327/gamma-quad/d3/aws4_request",
-      "/20170327/gamma-quad/d3/aws4_request",
+      "/20170327/gamma-quad/d3/aws4_request"
     ]
+
     for cr <- incorrect_cr do
-      assert {:error, _, _} = Sigaws.verify("http://localhost/",
-        params: Map.put(sig_data, "X-Amz-Credential", cr),
-        provider: VerificationProvider
-      )
+      assert {:error, _, _} =
+               Sigaws.verify(
+                 "http://localhost/",
+                 params: Map.put(sig_data, "X-Amz-Credential", cr),
+                 provider: VerificationProvider
+               )
     end
   end
 
   test "post with text body" do
     body = "body"
-    opts = [method: "POST", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: body]
+
+    opts = [
+      method: "POST",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: body
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: sig_data,
-      body: body,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: sig_data,
+               body: body,
+               provider: VerificationProvider
+             )
   end
 
   test "post without body" do
@@ -433,38 +557,61 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "post with unsigned body" do
-    opts = [method: "POST", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: :unsigned]
+    opts = [
+      method: "POST",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: :unsigned
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: sig_data,
-      body: "some body",
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: sig_data,
+               body: "some body",
+               provider: VerificationProvider
+             )
   end
 
   test "post with text body tampering" do
     body = "body"
-    opts = [method: "POST", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: body]
+
+    opts = [
+      method: "POST",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: body
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, :verification_failed, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: sig_data,
-      body: "some other body",
-      provider: VerificationProvider
-    )
+    assert {:error, :verification_failed, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: sig_data,
+               body: "some other body",
+               provider: VerificationProvider
+             )
   end
 
   test "post without body with tampering" do
@@ -472,12 +619,14 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, :verification_failed, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: sig_data,
-      body: "some body",
-      provider: VerificationProvider
-    )
+    assert {:error, :verification_failed, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: sig_data,
+               body: "some body",
+               provider: VerificationProvider
+             )
   end
 
   test "post without body and X-Amz-Content-Sha256 header dropped from sig" do
@@ -485,136 +634,235 @@ defmodule SigawsTest do
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
+               provider: VerificationProvider
+             )
   end
 
   test "post wit text body and X-Amz-Content-Sha256 header dropped from sig" do
     body = "body"
-    opts = [method: "POST", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: body]
+
+    opts = [
+      method: "POST",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: body
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
-      body: body,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
+               body: body,
+               provider: VerificationProvider
+             )
   end
 
   test "post with unsigned body and X-Amz-Content-Sha256 header dropped from sig" do
     body = "body"
-    opts = [method: "POST", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: :unsigned]
+
+    opts = [
+      method: "POST",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: :unsigned
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, :verification_failed, _} = Sigaws.verify("http://localhost/",
-      method: "POST",
-      headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
-      body: body,
-      provider: VerificationProvider
-    )
+    assert {:error, :verification_failed, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "POST",
+               headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
+               body: body,
+               provider: VerificationProvider
+             )
   end
 
   test "get with unsigned body" do
-    opts = [method: "GET", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: :unsigned]
+    opts = [
+      method: "GET",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: :unsigned
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "GET",
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "GET",
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "get with unsigned body and X-Amz-Content-Sha256 header dropped from sig" do
-    opts = [method: "GET", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: :unsigned]
+    opts = [
+      method: "GET",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: :unsigned
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, :verification_failed, _} = Sigaws.verify("http://localhost/",
-      method: "GET",
-      headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
-      provider: VerificationProvider
-    )
+    assert {:error, :verification_failed, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "GET",
+               headers: Map.drop(sig_data, ["X-Amz-Content-Sha256"]),
+               provider: VerificationProvider
+             )
   end
 
   test "PUT with signed body verified using content hash" do
     body = "signed content"
-    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: body]
+
+    opts = [
+      method: "PUT",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: body
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "PUT",
-      body: {:content_hash, Map.get(sig_data, "X-Amz-Content-Sha256")},
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "PUT",
+               body: {:content_hash, Map.get(sig_data, "X-Amz-Content-Sha256")},
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "PUT using content hash for signing" do
     body = "signed content"
     hash = Sigaws.Util.hexdigest(body)
-    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+
+    opts = [
+      method: "PUT",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: {:content_hash, hash}
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "PUT",
-      body: body,
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "PUT",
+               body: body,
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "PUT using content hash for signing - tampering" do
     body = "signed content"
     hash = Sigaws.Util.hexdigest(body)
-    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+
+    opts = [
+      method: "PUT",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: {:content_hash, hash}
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:error, _, _} = Sigaws.verify("http://localhost/",
-      method: "PUT",
-      body: body <> "tampered",
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:error, _, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "PUT",
+               body: body <> "tampered",
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "PUT using content hash for signing - file" do
     file = "test/sigaws_test.exs"
     hash = File.stream!(file) |> Sigaws.Util.hexdigest()
-    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+
+    opts = [
+      method: "PUT",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: {:content_hash, hash}
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "PUT",
-      body: File.read!(file),
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "PUT",
+               body: File.read!(file),
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 
   test "PUT using content hash for signing and verification - file" do
     file = "test/sigaws_test.exs"
     hash = File.stream!(file) |> Sigaws.Util.hexdigest()
-    opts = [method: "PUT", region: "us-east-1", service: "d3", access_key: "ak1", secret: "sk1", body: {:content_hash, hash}]
+
+    opts = [
+      method: "PUT",
+      region: "us-east-1",
+      service: "d3",
+      access_key: "ak1",
+      secret: "sk1",
+      body: {:content_hash, hash}
+    ]
+
     assert {:ok, sig_data, _info} = Sigaws.sign_req("http://localhost/", opts)
     assert_all_sig_headers(sig_data)
 
-    assert {:ok, _} = Sigaws.verify("http://localhost/",
-      method: "PUT",
-      body: {:content_hash, hash},
-      headers: sig_data,
-      provider: VerificationProvider
-    )
+    assert {:ok, _} =
+             Sigaws.verify(
+               "http://localhost/",
+               method: "PUT",
+               body: {:content_hash, hash},
+               headers: sig_data,
+               provider: VerificationProvider
+             )
   end
 end

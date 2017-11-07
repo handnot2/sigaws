@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.7.2
+
+- Formatting changes
+
 ### v0.7.1
 
 - Skipping tests related to duplicate query parameters. The AWS Signature V4 specs

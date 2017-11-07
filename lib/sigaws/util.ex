@@ -1,5 +1,4 @@
 defmodule Sigaws.Util do
-
   @moduledoc """
   A varied collection of functions useful in request signing and verification.
   """
@@ -17,6 +16,7 @@ defmodule Sigaws.Util do
   """
   def add_params_to_url(url, %{} = p) when is_binary(url) do
     uri = URI.parse(url)
+
     %URI{uri | query: (uri.query || "") |> URI.decode_query(p) |> URI.encode_query()}
     |> URI.to_string()
   end
@@ -39,7 +39,7 @@ defmodule Sigaws.Util do
   check called from your `pre_verification` callback implementation.
   """
   @request_expired {:error, :expired, ""}
-  @spec check_expiration(Ctxt.t) :: :ok | {:error, atom, binary}
+  @spec check_expiration(Ctxt.t()) :: :ok | {:error, atom, binary}
   def check_expiration(%Ctxt{signed_at_amz_dt: signed_at_amz_dt, expires_in: ex}) do
     expired?(parse_amz_dt(signed_at_amz_dt), ex)
   end
@@ -51,15 +51,17 @@ defmodule Sigaws.Util do
   signing key. This function can be called from this behavior implementation
   to generate the signing key. ([AWS examples](http://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html))
   """
-  @spec signing_key(Date.t, binary, binary, binary) :: {:ok, binary}
+  @spec signing_key(Date.t(), binary, binary, binary) :: {:ok, binary}
   def signing_key(%Date{} = signed_on, region, service, secret)
       when is_binary(region) and is_binary(service) and is_binary(secret) do
-    {:ok,
-      "AWS4" <> secret
+    {
+      :ok,
+      ("AWS4" <> secret)
       |> hmac(signed_on |> Date.to_string() |> String.replace("-", ""))
       |> hmac(region)
       |> hmac(service)
-      |> hmac("aws4_request")}
+      |> hmac("aws4_request")
+    }
   end
 
   @doc """
@@ -69,31 +71,39 @@ defmodule Sigaws.Util do
 
   Returns `{:error, :invalid_data, "timestamp"}` upon error.
   """
-  @spec parse_amz_dt(binary) :: {:ok, DateTime.t} | {:error, atom, binary}
+  @spec parse_amz_dt(binary) :: {:ok, DateTime.t()} | {:error, atom, binary}
   @invalid_timestamp {:error, :invalid_data, "timestamp"}
   def parse_amz_dt(<<
-     y::binary-size(4),  m::binary-size(2),  d::binary-size(2), "T",
-    hr::binary-size(2), mn::binary-size(2), sc::binary-size(2), "Z">>) do
+        y::binary-size(4),
+        m::binary-size(2),
+        d::binary-size(2),
+        "T",
+        hr::binary-size(2),
+        mn::binary-size(2),
+        sc::binary-size(2),
+        "Z"
+      >>) do
     "#{y}-#{m}-#{d}T#{hr}:#{mn}:#{sc}Z"
     |> DateTime.from_iso8601()
     |> parsed_utc()
   end
+
   def parse_amz_dt(_), do: @invalid_timestamp
 
   @doc false
-  @spec amz_dt_now() :: DateTime.t
+  @spec amz_dt_now() :: DateTime.t()
   def amz_dt_now do
     DateTime.utc_now() |> Map.put(:microsecond, {0, 0})
   end
 
   @doc false
-  @spec amz_dt_iso(DateTime.t) :: binary
+  @spec amz_dt_iso(DateTime.t()) :: binary
   def amz_dt_iso(%DateTime{} = dt) do
     dt |> DateTime.to_iso8601() |> String.replace("-", "") |> String.replace(":", "")
   end
 
   @doc false
-  @spec to_amz_dt(DateTime.t) :: binary
+  @spec to_amz_dt(DateTime.t()) :: binary
   def to_amz_dt(%DateTime{time_zone: "Etc/UTC"} = dt) do
     dt
     |> Map.put(:microsecond, {0, 0})
@@ -118,7 +128,7 @@ defmodule Sigaws.Util do
   @doc """
   Calculate lower case hex encoded SHA256 digest/hash of the given binary or stream.
   """
-  @spec hexdigest(binary | Enumerable.t) :: binary
+  @spec hexdigest(binary | Enumerable.t()) :: binary
   def hexdigest(data) when is_binary(data) do
     @hash_alg
     |> Hash.init()
@@ -126,21 +136,24 @@ defmodule Sigaws.Util do
     |> Hash.compute()
     |> Base.encode16(case: :lower)
   end
+
   def hexdigest(enumerable) do
     enumerable
-    |> Enum.reduce(Hash.init(@hash_alg), &(Hash.update(&2, &1)))
+    |> Enum.reduce(Hash.init(@hash_alg), &Hash.update(&2, &1))
     |> Hash.compute()
     |> Base.encode16(case: :lower)
   end
 
-  @spec expired?({:ok, DateTime.t} | {:error, atom, binary}, integer) ::
-      :ok | {:error, atom, binary}
+  @spec expired?({:ok, DateTime.t()} | {:error, atom, binary}, integer) ::
+          :ok | {:error, atom, binary}
   defp expired?({:ok, %DateTime{time_zone: "Etc/UTC"}}, nil), do: :ok
+
   defp expired?({:ok, %DateTime{time_zone: "Etc/UTC"} = dt}, ex) do
     now_in_unix = DateTime.utc_now() |> DateTime.to_unix(:seconds)
     expiry_in_unix = DateTime.to_unix(dt, :seconds) + ex
     if expiry_in_unix < now_in_unix, do: @request_expired, else: :ok
   end
+
   defp expired?({:error, _, _} = error, _), do: error
 
   defp parsed_utc({:ok, %DateTime{} = dt, _}), do: {:ok, dt}

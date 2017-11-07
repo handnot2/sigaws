@@ -3,15 +3,22 @@ defmodule Sigaws.Signer do
 
   alias Sigaws.Util
 
-  @aws_alg  "AWS4-HMAC-SHA256"
+  @aws_alg "AWS4-HMAC-SHA256"
 
   @spec sign_req(map) :: {:ok, map, map} | {:error, atom, binary}
-  def sign_req(%{req_path: req_path, method: method, normalize_path: normalize_path,
-      params: params, headers: headers, body: body,
-      signed_at: signed_at_amz_dt,
-      region: region, service: service,
-      access_key: ak, signing_key: signing_key}) do
-
+  def sign_req(%{
+        req_path: req_path,
+        method: method,
+        normalize_path: normalize_path,
+        params: params,
+        headers: headers,
+        body: body,
+        signed_at: signed_at_amz_dt,
+        region: region,
+        service: service,
+        access_key: ak,
+        signing_key: signing_key
+      }) do
     [date, _] = String.split(signed_at_amz_dt, "T")
     cred_scope = "#{date}/#{region}/#{service}/aws4_request"
     credential = "#{ak}/#{cred_scope}"
@@ -30,17 +37,23 @@ defmodule Sigaws.Signer do
     signature = signing_key |> signature(sts)
 
     authz_header = [
-      @aws_alg, " ",
-      "Credential=", credential, ", ",
-      "SignedHeaders=", headers_to_sign, ", ",
-      "Signature=", signature
+      @aws_alg,
+      " ",
+      "Credential=",
+      credential,
+      ", ",
+      "SignedHeaders=",
+      headers_to_sign,
+      ", ",
+      "Signature=",
+      signature
     ]
 
     sig_data = %{
-      "X-Amz-Algorithm"     => "AWS4-HMAC-SHA256",
-      "X-Amz-Date"          => signed_at_amz_dt,
+      "X-Amz-Algorithm" => "AWS4-HMAC-SHA256",
+      "X-Amz-Date" => signed_at_amz_dt,
       "X-Amz-SignedHeaders" => headers_to_sign,
-      "Authorization"       => authz_header |> IO.iodata_to_binary(),
+      "Authorization" => authz_header |> IO.iodata_to_binary()
     }
 
     # TO-DO replace this functionality with a package config debug
@@ -51,12 +64,19 @@ defmodule Sigaws.Signer do
   end
 
   @spec sign_url(map) :: {:ok, map, map} | {:error, atom, binary}
-  def sign_url(%{req_path: req_path, method: method, normalize_path: normalize_path,
-      params: params, headers: headers, body: body,
-      signed_at: signed_at_amz_dt,
-      region: region, service: service,
-      access_key: ak, signing_key: signing_key}) do
-
+  def sign_url(%{
+        req_path: req_path,
+        method: method,
+        normalize_path: normalize_path,
+        params: params,
+        headers: headers,
+        body: body,
+        signed_at: signed_at_amz_dt,
+        region: region,
+        service: service,
+        access_key: ak,
+        signing_key: signing_key
+      }) do
     [date, _] = String.split(signed_at_amz_dt, "T")
     cred_scope = "#{date}/#{region}/#{service}/aws4_request"
     credential = "#{ak}/#{cred_scope}"
@@ -66,10 +86,10 @@ defmodule Sigaws.Signer do
     headers_to_sign = headers |> Map.keys() |> Enum.sort() |> Enum.join(";")
 
     sig_data = %{
-      "X-Amz-Algorithm"     => @aws_alg,
-      "X-Amz-Credential"    => credential,
-      "X-Amz-Date"          => signed_at_amz_dt,
-      "X-Amz-SignedHeaders" => headers_to_sign,
+      "X-Amz-Algorithm" => @aws_alg,
+      "X-Amz-Credential" => credential,
+      "X-Amz-Date" => signed_at_amz_dt,
+      "X-Amz-SignedHeaders" => headers_to_sign
     }
 
     params_to_sign = params |> Map.merge(sig_data)
@@ -94,8 +114,10 @@ defmodule Sigaws.Signer do
   end
 
   defp c_req_path(req_path, false), do: req_path
+
   defp c_req_path(req_path, true) do
     c_req_path = Path.expand(req_path)
+
     if String.ends_with?(req_path, "/") && c_req_path != "/" do
       c_req_path <> "/"
     else
@@ -119,26 +141,38 @@ defmodule Sigaws.Signer do
       Regex.replace(@ws_re, String.trim(v), " ")
     end
   end
+
   defp normalize_header_value(v) when is_list(v) do
     v
     |> List.foldr([], fn
-        i, []  -> [normalize_header_value(i)]
-        i, acc -> [normalize_header_value(i), ",", acc]
+         i, [] -> [normalize_header_value(i)]
+         i, acc -> [normalize_header_value(i), ",", acc]
        end)
   end
 
   defp c_headers(%{} = headers) do
     headers
     |> Enum.map(fn {k, v} ->
-        {normalize_header_name(k), normalize_header_value(v)}
+         {normalize_header_name(k), normalize_header_value(v)}
        end)
     |> Enum.sort(&(&1 < &2))
     |> Enum.map(fn {k, v} -> [k, ":", v, "\n"] end)
   end
 
   defp c_req(m, p, c_qs, c_headers, headers_to_sign, payload_hash) do
-    [m, "\n", URI.encode(p), "\n", c_qs, "\n", c_headers, "\n",
-     headers_to_sign, "\n", payload_hash]
+    [
+      m,
+      "\n",
+      URI.encode(p),
+      "\n",
+      c_qs,
+      "\n",
+      c_headers,
+      "\n",
+      headers_to_sign,
+      "\n",
+      payload_hash
+    ]
   end
 
   defp sts(alg, signed_at_amz_dt, cred_scope, c_req) do
