@@ -64,6 +64,8 @@ defmodule AwsSigV4Test do
   excluded = [
     "post-vanilla-query-nonunreserved",
     "post-vanilla-query-space",
+    "get-vanilla-query-order-key",
+    "get-vanilla-query-order-value"
   ]
 
   for path_to_req_file <- Path.wildcard(@tsroot <> "/**/*.req"),

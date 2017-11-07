@@ -73,6 +73,11 @@ presigned_url = Sigaws.Util.add_params_to_url(url, sig_data)
 {:ok, resp} = HTTPoison.get(presigned_url)
 ```
 
+> When creating pre-signed URL for AWS S3, make sure to pass in `body: :unsigned`
+> option. It is also very importnt to merge the signature data with other query
+> parameters before sending the request (`Sigaws.Util.add_params_to_url`).
+> The request will fail if these are not taken care of.
+
 ### Signature Verification
 
 The verification process relies on a provider module that implements
