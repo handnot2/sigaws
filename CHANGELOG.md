@@ -1,5 +1,10 @@
 ## Changelog
 
+### v0.7.1
+
+- Skipping tests related to duplicate query parameters. The AWS Signature V4 specs
+  don't have any information on how to deal with them. (issue #10)
+
 ### v0.7.0
 
 Fixes:
