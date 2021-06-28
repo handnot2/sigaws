@@ -28,7 +28,7 @@ defmodule Sigaws.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    [extra_applications: [:logger]]
+    [extra_applications: [:crypto, :logger]]
   end
 
   # Type "mix help deps" for more examples and options
